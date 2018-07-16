@@ -97,7 +97,7 @@ const struct app subapps[]={
 #endif
 #ifdef DMESG_APP
   //Beacon
-  {.name="dmesgapp",
+  {.name="dmesg",
    .init=dmesgapp_init, .draw=dmesgapp_draw, .exit=dmesgapp_exit,
    .packettx=dmesgapp_packettx, .keypress=dmesgapp_keypress
   },

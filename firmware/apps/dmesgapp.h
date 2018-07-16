@@ -1,4 +1,4 @@
-/*! \file dmesg.h
+/*! \file dmesgapp.h
   \brief Send full dmesg log over radio 
   
 */

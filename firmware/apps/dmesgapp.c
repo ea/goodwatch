@@ -52,12 +52,36 @@ static uint16_t state = 0;
 static char *dmesg_buffer=(char*)0x2400;
 static uint16_t dmesg_idx = 0;
 
+//! Check if the current dmesg chunk is all empty
+int all_zeros(){
+  uint16_t i;
+  for(i=0;i<LEN;i++){
+    if(dmesg_buffer[dmesg_idx+i] != '\0') return 0;
+  }
+  return 1;
+}
+
+//! Transmit one dmesg packet
+void dmesgapp_packettx(){
+  __delay_cycles(20000); //waste a bit of time so recieving side can keep up
+  if(state){
+    while(all_zeros())dmesg_idx += LEN; // skip all-null packet
+    if(dmesg_idx < DMESGLEN){
+      packet_tx((uint8_t*)dmesg_buffer+dmesg_idx,LEN);
+      dmesg_idx+=LEN;
+    }else{
+      dmesg_idx=0;
+      state=0; // we are done
+    }
+  }
+}
+int dmesgapp_keypress(char ch);
+
 //! Enter the dmesg application.
 void dmesgapp_init(){
   /* This enters the application.  We use the codeplug frequency.
    */
   if(has_radio){
-    printf("Setting up dmesg.\n");
     dmesg_idx = 0;
     radio_on();
     radio_writesettings(goodwatch_settings);
@@ -90,29 +114,6 @@ void dmesgapp_draw(){
   }
 }
 
-//! Check if the current dmesg chunk is all empty
-int all_zeros(char *buff){
-  uint16_t i;
-  for(i=0;i<LEN;i++){
-    if(buff[dmesg_idx+i] != 0) return 0;
-  }
-  return 1;
-}
-
-static int send_dmesg_rf(){
-  if(dmesg_idx < DMESGLEN){
-    while(radio_getstate()!=1);
-    while(all_zeros(dmesg_buffer+dmesg_idx)){
-	dmesg_idx+=LEN;//skip all-null packets
-    }
-    packet_tx((uint8_t*) dmesg_buffer+dmesg_idx,LEN);
-    dmesg_idx+=LEN;
-  }else{
-    dmesg_idx=0;
-    state = 0; // we are done
-  }
-}
-
 //! Keypress handler for the dmesg app.
 int dmesgapp_keypress(char ch){
   switch(ch){
@@ -121,7 +122,7 @@ int dmesgapp_keypress(char ch){
   case '4':
   case '7':
     if(radio_getstate()==1){
-      state = 1;
+      state=1;
       dmesgapp_packettx();
     }
     break;
@@ -129,10 +130,4 @@ int dmesgapp_keypress(char ch){
 
   return 0;
 }
-
-void dmesgapp_packettx(){
-  __delay_cycles(10000); //waste a bit of time so recieving side can keep up
-  if(state)send_dmesg_rf();	
-}
-
 
